@@ -25,6 +25,7 @@ import traceback
 import sickbeard
 
 from sickbeard import logger
+from sickbeard import tvtumbler
 from sickbeard.common import UNAIRED
 
 from sickbeard import db
@@ -114,7 +115,7 @@ class TVRage:
                     ep = t[self.show.tvdbid][curSeason][1]
 
                     # make sure we have a date to compare with
-                    if ep["firstaired"] == "" or ep["firstaired"] == None:
+                    if ep["firstaired"] == "" or ep["firstaired"] == None or ep["firstaired"] == "0000-00-00":
                         continue
 
                     # get a datetime object
@@ -227,14 +228,20 @@ class TVRage:
 
         url = "http://services.tvrage.com/tools/quickinfo.php?"
 
-        # if we need full info OR if we don't have a tvrage id, use show name
-        if full == True or self.show.tvrid == 0:
+        if full or self.show.tvrid == 0:
+            # for some reason, the previous code here forced the use of the tvrage slug
+            # rather than the tvrage_id when 'full' was True.  I expect there was a
+            # reason for this, so best to do the same.
             if self.show.tvrname != "" and self.show.tvrname != None:
                 showName = self.show.tvrname
             else:
                 showName = self.show.name
-
             urlData = {'show': showName.encode('utf-8')}
+
+            if not full:  # as per above, only use tvtumbler if not 'full'
+                tvtumb = tvtumbler.show_info(self.show.tvdbid)
+                if tvtumb and 'tvrage_id' in tvtumb and tvtumb['tvrage_id']:
+                    urlData = {'sid': tvtumb['tvrage_id']}
 
         # if we don't need full info and we have a tvrage id, use it
         else:
@@ -259,6 +266,9 @@ class TVRage:
         info = {}
 
         for x in urlData:
+            if x.startswith("No Show Results Were Found"):
+                logger.log(x.encode('utf-8'), logger.WARNING)
+                return info
             key, value = x.split("@")
             key = key.replace('<pre>','')
             info[key] = value.strip()

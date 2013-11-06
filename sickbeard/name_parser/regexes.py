@@ -47,6 +47,28 @@ ep_regexes = [
                -(?P<release_group>[^- ]+))?)?$              # Group
                '''),
               
+              ('site_at_start',
+               # Several sites doing this now, putting their url at the start for credit
+               # (generally just in the torrent name, but also, sometimes in the dir and/or filenames)
+               # This is the 'standard' regex, with allowance for this at the beginning.
+               
+               # [www.Cpasbien.me] 666.Park.Avenue.S01E13.Vostfr.HDTV.XviD-iTOMa
+               # [ www.Torrenting.com ] - American.Idol.S12E35.480p.HDTV.x264-mSD
+               # [ www.Torrenting.com ] - Game.of.Thrones.S03E06.HDTV.XviD-AFG
+               # [ www.Torrenting.com ] - Men.at.Work.S02E06.HDTV.XviD-AFG
+               # [kat.ph]666.park.avenue.s01e12.vostfr.hdtv.xvid.itoma
+               '''
+               ^(\[.+\][ -]*)                              # likely a web address, surrounded by [ and ]
+               ((?P<series_name>.+?)[. _-]+)?              # Show_Name and separator
+               s(?P<season_num>\d+)[. _-]*                 # S01 and optional separator
+               e(?P<ep_num>\d+)                            # E02 and separator
+               (([. _-]*e|-)                               # linking e/- char
+               (?P<extra_ep_num>(?!(1080|720)[pi])\d+))*   # additional E03/etc
+               [. _-]*((?P<extra_info>.+?)                 # Source_Quality_Etc-
+               ((?<![. _-])(?<!WEB)                        # Make sure this is really the release group
+               -(?P<release_group>[^- ]+))?)?$             # Group
+               '''),
+              
               ('standard',
                # Show.Name.S01E02.Source.Quality.Etc-Group
                # Show Name - S01E02 - My Ep Name
@@ -121,7 +143,7 @@ ep_regexes = [
                '''
                ^((?P<series_name>.+?)[. _-]+)?             # Show_Name and separator
                s(eason[. _-])?                             # S01/Season 01
-               (?P<season_num>\d+)[. _-]*                  # S01 and optional separator
+               (?P<season_num>\d+)                         # S01 and optional separator
                [. _-]*((?P<extra_info>.+?)                 # Source_Quality_Etc-
                ((?<![. _-])(?<!WEB)                        # Make sure this is really the release group
                -(?P<release_group>[^- ]+))?)?$              # Group
@@ -184,5 +206,17 @@ ep_regexes = [
                -(?P<release_group>[^- ]+))?)?$              # Group
                '''
                ),
+              
+              ('mvgroup',
+               # BBC Lost Kingdoms of South America 3of4 Lands of Gold PDTV x264 AC3mp4-MVGroup
+               # BBC.Great.British.Railway.Journeys.Series4.03of25.Stoke-on-Trent.to.Winsford.720p.HDTV.x264.AAC.MVGroup
+               '''
+               ^(?P<series_name>.+?)[. _-]+                # Show_Name and separator
+               ((series|season)(?P<season_num>\d+)[. _-]+)? # Series4
+               (?P<ep_num>\d{1,2})of\d{1,2}                # 3of4
+               [. _-]+((?P<extra_info>.+?)                 # Source_Quality_Etc-
+               ((?<![. _-])(?<!WEB)                        # Make sure this is really the release group
+               -(?P<release_group>[^- ]+))?)?$
+               '''),
               ]
 

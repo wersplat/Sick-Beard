@@ -1,7 +1,7 @@
 $(document).ready(function () {
 
     function populateSelect() {
-        if (!$('#nameToSearch').val().length) {
+        if (!$('#nameToSearch').length) {
             return;
         }
 
@@ -118,9 +118,6 @@ $(document).ready(function () {
             updateSampleText();
             if ($('input:hidden[name=whichSeries]').length && $('#fullShowPath').length) {
                 goToStep(3);
-            }
-            if ($('#nameToSearch').length) {
-                $('#nameToSearch').focus();
             }
         }
     });
