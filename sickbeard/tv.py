@@ -38,13 +38,12 @@ from sickbeard.exceptions import ex
 from sickbeard import tvrage
 from sickbeard import image_cache
 from sickbeard import postProcessor
-from sickbeard.scene_exceptions import get_scene_exceptions
 
 from sickbeard import encodingKludge as ek
 
 from common import Quality, Overview
 from common import DOWNLOADED, SNATCHED, SNATCHED_PROPER, ARCHIVED, IGNORED, UNAIRED, WANTED, SKIPPED, UNKNOWN
-from common import NAMING_DUPLICATE, NAMING_EXTEND, NAMING_LIMITED_EXTEND, NAMING_SEPARATED_REPEAT, NAMING_LIMITED_EXTEND_E_PREFIXED
+from common import NAMING_DUPLICATE, NAMING_EXTEND, NAMING_LIMITED_EXTEND, NAMING_SEPARATED_REPEAT
 
 class TVShow(object):
 
@@ -142,7 +141,6 @@ class TVShow(object):
         for cur_result in results:
             cur_ep = self.getEpisode(int(cur_result["season"]), int(cur_result["episode"]))
             if cur_ep:
-                cur_ep.relatedEps = []
                 if cur_ep.location:
                     # if there is a location, check if it's a multi-episode (share_location > 0) and put them in relatedEps
                     if cur_result["share_location"] > 0:
@@ -260,7 +258,7 @@ class TVShow(object):
             parse_result = None
             try:
                 np = NameParser(False)
-                parse_result = np.parse(ep_file_name, False) # we assume that these have tvdb numbering
+                parse_result = np.parse(ep_file_name)
             except InvalidNameException:
                 pass
         
@@ -427,7 +425,7 @@ class TVShow(object):
 
 
     # make a TVEpisode object from a media file
-    def makeEpFromFile(self, file, fixSceneNumbering=False):
+    def makeEpFromFile(self, file):
 
         if not ek.ek(os.path.isfile, file):
             logger.log(str(self.tvdbid) + ": That isn't even a real file dude... " + file)
@@ -437,7 +435,7 @@ class TVShow(object):
 
         try:
             myParser = NameParser()
-            parse_result = myParser.parse(file, fixSceneNumbering)
+            parse_result = myParser.parse(file)
         except InvalidNameException:
             logger.log(u"Unable to parse the filename "+file+" into a valid episode", logger.ERROR)
             return None
@@ -639,10 +637,7 @@ class TVShow(object):
 
         myEp = t[self.tvdbid]
 
-        try:
-            self.name = myEp["seriesname"].strip()
-        except AttributeError:
-            raise tvdb_exceptions.tvdb_attributenotfound("Found %s, but attribute 'seriesname' was empty." % (self.tvdbid))
+        self.name = myEp["seriesname"]
 
         self.genre = myEp['genre']
         self.network = myEp['network']
@@ -847,7 +842,7 @@ class TVShow(object):
         if self.status != None:
             toReturn += "status: " + self.status + "\n"
         toReturn += "startyear: " + str(self.startyear) + "\n"
-        toReturn += "genre: " + str(self.genre) + "\n"
+        toReturn += "genre: " + self.genre + "\n"
         toReturn += "runtime: " + str(self.runtime) + "\n"
         toReturn += "quality: " + str(self.quality) + "\n"
         return toReturn
@@ -922,11 +917,9 @@ class TVShow(object):
                 maxBestQuality = None
 
             epStatus, curQuality = Quality.splitCompositeStatus(epStatus)
-    
-            if epStatus in (SNATCHED, SNATCHED_PROPER):
-                return Overview.SNATCHED
+
             # if they don't want re-downloads then we call it good if they have anything
-            elif maxBestQuality == None:
+            if maxBestQuality == None:
                 return Overview.GOOD
             # if they have one but it's not the best they want then mark it as qual
             elif curQuality < maxBestQuality:
@@ -934,15 +927,6 @@ class TVShow(object):
             # if it's >= maxBestQuality then it's good
             else:
                 return Overview.GOOD
-            
-    def getAlternateNames(self, includeCustomSceneExceptions=True):
-        """
-        Returns a list of scene exception show names for the show.
-        @param includeCustomSceneExceptions: (boolean)
-        @return: List
-        """
-        return get_scene_exceptions(self.tvdbid, not includeCustomSceneExceptions)
-        
 
 def dirty_setter(attr_name):
     def wrapper(self, val):
@@ -1153,7 +1137,7 @@ class TVEpisode(object):
             return
 
 
-        if not myEp["firstaired"] or myEp["firstaired"] == "0000-00-00":
+        if not myEp["firstaired"]:
             myEp["firstaired"] = str(datetime.date.fromordinal(1))
 
         if myEp["episodename"] == None or myEp["episodename"] == "":
@@ -1588,7 +1572,7 @@ class TVEpisode(object):
                     sep = ' '
 
                 # force 2-3-4 format if they chose to extend
-                if multi in (NAMING_EXTEND, NAMING_LIMITED_EXTEND, NAMING_LIMITED_EXTEND_E_PREFIXED):
+                if multi in (NAMING_EXTEND, NAMING_LIMITED_EXTEND):
                     ep_sep = '-'
                 
                 regex_used = season_ep_regex
@@ -1613,7 +1597,7 @@ class TVEpisode(object):
             for other_ep in self.relatedEps:
                 
                 # for limited extend we only append the last ep
-                if multi in (NAMING_LIMITED_EXTEND, NAMING_LIMITED_EXTEND_E_PREFIXED) and other_ep != self.relatedEps[-1]:
+                if multi == NAMING_LIMITED_EXTEND and other_ep != self.relatedEps[-1]:
                     continue
                 
                 elif multi == NAMING_DUPLICATE:
@@ -1625,10 +1609,6 @@ class TVEpisode(object):
 
                 # add "E04"
                 ep_string += ep_sep
-
-                if multi == NAMING_LIMITED_EXTEND_E_PREFIXED:
-                    ep_string += 'E'
-
                 ep_string += other_ep._format_string(ep_format.upper(), other_ep._replace_map())
 
             if season_ep_match:
@@ -1759,13 +1739,3 @@ class TVEpisode(object):
             self.saveToDB()
             for relEp in self.relatedEps:
                 relEp.saveToDB()
-                
-    def convertToSceneNumbering(self):
-        if self.show.air_by_date: return
-        
-        if self.season is None: return # can't work without a season
-        if self.episode is None: return # need to know the episode
-        
-        tvdb_id = self.show.tvdbid
-        
-        (self.season, self.episode) = sickbeard.scene_numbering.get_scene_numbering(tvdb_id, self.season, self.episode)

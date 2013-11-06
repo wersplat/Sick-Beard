@@ -8,8 +8,6 @@ sickbeard.db*
 autoProcessTV/autoProcessTV.cfg
 server.crt
 server.key
-/cache
-/Logs
 
 #  SB Test Related   #
 ######################
@@ -32,8 +30,6 @@ tests/cache.db
 *.tmproj
 *.tmproject
 *.sw?
-.pydevproject
-.settings
 
 # OS generated files #
 ######################
@@ -44,7 +40,4 @@ desktop.ini
 ehthumbs.db
 Thumbs.db
 .directory
-.apdisk
 *~
-/.TemporaryItems
-/lt_working_dir

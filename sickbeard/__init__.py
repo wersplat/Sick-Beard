@@ -30,9 +30,8 @@ from threading import Lock
 
 # apparently py2exe won't build these unless they're imported somewhere
 from sickbeard import providers, metadata
-from providers import ezrss, tvtorrents, torrentleech, btn, nzbsrus, newznab, womble, nzbx, omgwtfnzbs
-from providers import showrss, kat, iplayer, publichd, anyrss
-from sickbeard.config import CheckSection, check_setting_int, check_setting_str, ConfigMigrator, check_setting_float
+from providers import ezrss, tvtorrents, btn, nzbmatrix, nzbsrus, newznab, womble, newzbin, nzbs_org_old
+from sickbeard.config import CheckSection, check_setting_int, check_setting_str, ConfigMigrator
 
 from sickbeard import searchCurrent, searchBacklog, showUpdater, versionChecker, properFinder, autoPostProcesser, traktWatchListChecker
 from sickbeard import helpers, db, exceptions, show_queue, search_queue, scheduler
@@ -55,7 +54,7 @@ CFG = None
 CONFIG_FILE = None
 
 # this is the version of the config we EXPECT to find
-CONFIG_VERSION = 3
+CONFIG_VERSION = 1
 
 PROG_DIR = '.'
 MY_FULLNAME = None
@@ -67,7 +66,6 @@ CREATEPID = False
 PIDFILE = ''
 
 DAEMON = None
-NO_RESIZE = False
 
 backlogSearchScheduler = None
 currentSearchScheduler = None
@@ -77,18 +75,13 @@ showQueueScheduler = None
 searchQueueScheduler = None
 properFinderScheduler = None
 autoPostProcesserScheduler = None
-<<<<<<< HEAD
 traktWatchListCheckerSchedular = None
-=======
-torrentProcessScheduler = None
->>>>>>> master
 
 showList = None
 loadingShowList = None
 
 providerList = []
 newznabProviderList = []
-anyRssProviderList = []
 metadata_provider_dict = {}
 
 NEWEST_VERSION = None
@@ -108,8 +101,6 @@ WEB_USERNAME = None
 WEB_PASSWORD = None
 WEB_HOST = None
 WEB_IPV6 = None
-
-ANON_REDIRECT = None
 
 USE_API = False
 API_KEY = None
@@ -149,43 +140,29 @@ TVDB_API_PARMS = {}
 
 USE_NZBS = None
 USE_TORRENTS = None
-USE_VODS = None
 
 NZB_METHOD = None
 NZB_DIR = None
 USENET_RETENTION = None
 DOWNLOAD_PROPERS = None
-PREFER_MAGNETS = None
 
 SEARCH_FREQUENCY = None
 BACKLOG_SEARCH_FREQUENCY = 21
+
 MIN_SEARCH_FREQUENCY = 10
+
 DEFAULT_SEARCH_FREQUENCY = 60
 
-USE_LIBTORRENT = False
-LIBTORRENT_AVAILABLE = False
-LIBTORRENT_WORKING_DIR = None
-LIBTORRENT_SEED_TO_RATIO = 1.1
-LIBTORRENT_MAX_DL_SPEED = 0
-LIBTORRENT_MAX_UL_SPEED = 0
-LIBTORRENT_PORT_MIN = 6881
-LIBTORRENT_PORT_MAX = 6891
-
 EZRSS = False
-SHOWRSS = False
-KAT = False
-PUBLICHD = False
 TVTORRENTS = False
 TVTORRENTS_DIGEST = None
 TVTORRENTS_HASH = None
-
-TORRENTLEECH = False
-TORRENTLEECH_KEY = None
 
 BTN = False
 BTN_API_KEY = None
 
 TORRENT_DIR = None
+
 ADD_SHOWS_WO_DIR = None
 CREATE_MISSING_SHOW_DIRS = None
 RENAME_EPISODES = False
@@ -199,17 +176,6 @@ NZBS_UID = None
 NZBS_HASH = None
 
 WOMBLE = False
-
-IPLAYER = False
-IPLAYER_GETIPLAYER_PATH = None
-IPLAYER_EXTRA_PARAMS = None
-
-NZBX = False
-NZBX_COMPLETION = 100
-
-OMGWTFNZBS = False
-OMGWTFNZBS_USERNAME = None
-OMGWTFNZBS_APIKEY = None
 
 NZBSRUS = False
 NZBSRUS_UID = None
@@ -238,7 +204,6 @@ XBMC_NOTIFY_ONSNATCH = False
 XBMC_NOTIFY_ONDOWNLOAD = False
 XBMC_UPDATE_LIBRARY = False
 XBMC_UPDATE_FULL = False
-XBMC_UPDATE_ONLYFIRST = False
 XBMC_HOST = ''
 XBMC_USERNAME = None
 XBMC_PASSWORD = None
@@ -301,11 +266,6 @@ NMJ_MOUNT = None
 
 USE_SYNOINDEX = False
 
-USE_NMJv2 = False
-NMJv2_HOST = None
-NMJv2_DATABASE = None
-NMJv2_DBLOC = None
-
 USE_TRAKT = False
 TRAKT_USERNAME = None
 TRAKT_PASSWORD = None
@@ -353,21 +313,15 @@ def initialize(consoleLogging=True):
 
         global LOG_DIR, WEB_PORT, WEB_LOG, WEB_ROOT, WEB_USERNAME, WEB_PASSWORD, WEB_HOST, WEB_IPV6, USE_API, API_KEY, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, \
                 USE_NZBS, USE_TORRENTS, NZB_METHOD, NZB_DIR, DOWNLOAD_PROPERS, \
-                USE_VODS, IPLAYER, IPLAYER_GETIPLAYER_PATH, IPLAYER_EXTRA_PARAMS, \
                 SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_HOST, \
                 NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_HOST, currentSearchScheduler, backlogSearchScheduler, \
-                USE_XBMC, XBMC_NOTIFY_ONSNATCH, XBMC_NOTIFY_ONDOWNLOAD, XBMC_UPDATE_FULL, XBMC_UPDATE_ONLYFIRST, \
+                USE_XBMC, XBMC_NOTIFY_ONSNATCH, XBMC_NOTIFY_ONDOWNLOAD, XBMC_UPDATE_FULL, \
                 XBMC_UPDATE_LIBRARY, XBMC_HOST, XBMC_USERNAME, XBMC_PASSWORD, \
                 USE_TRAKT, TRAKT_USERNAME, TRAKT_PASSWORD, TRAKT_API, TRAKT_REMOVE_WATCHLIST, TRAKT_USE_WATCHLIST, TRAKT_METHOD_ADD, TRAKT_START_PAUSED, traktWatchListCheckerSchedular, \
                 USE_PLEX, PLEX_NOTIFY_ONSNATCH, PLEX_NOTIFY_ONDOWNLOAD, PLEX_UPDATE_LIBRARY, \
                 PLEX_SERVER_HOST, PLEX_HOST, PLEX_USERNAME, PLEX_PASSWORD, \
                 showUpdateScheduler, __INITIALIZED__, LAUNCH_BROWSER, showList, loadingShowList, \
-                USE_LIBTORRENT, LIBTORRENT_AVAILABLE, LIBTORRENT_WORKING_DIR, LIBTORRENT_SEED_TO_RATIO, \
-                LIBTORRENT_MAX_DL_SPEED, LIBTORRENT_MAX_UL_SPEED, torrentProcessScheduler, PREFER_MAGNETS, \
-                LIBTORRENT_PORT_MIN, LIBTORRENT_PORT_MAX, \
-                SHOWRSS, KAT, PUBLICHD, \
-                NZBS, NZBS_UID, NZBS_HASH, EZRSS, TVTORRENTS, TVTORRENTS_DIGEST, TVTORRENTS_HASH, BTN, BTN_API_KEY, TORRENTLEECH, TORRENTLEECH_KEY, \
-                TORRENT_DIR, USENET_RETENTION, SOCKET_TIMEOUT, \
+                NZBS, NZBS_UID, NZBS_HASH, EZRSS, TVTORRENTS, TVTORRENTS_DIGEST, TVTORRENTS_HASH, BTN, BTN_API_KEY, TORRENT_DIR, USENET_RETENTION, SOCKET_TIMEOUT, \
                 SEARCH_FREQUENCY, DEFAULT_SEARCH_FREQUENCY, BACKLOG_SEARCH_FREQUENCY, \
                 QUALITY_DEFAULT, FLATTEN_FOLDERS_DEFAULT, STATUS_DEFAULT, \
                 GROWL_NOTIFY_ONSNATCH, GROWL_NOTIFY_ONDOWNLOAD, TWITTER_NOTIFY_ONSNATCH, TWITTER_NOTIFY_ONDOWNLOAD, \
@@ -379,17 +333,16 @@ def initialize(consoleLogging=True):
                 showQueueScheduler, searchQueueScheduler, ROOT_DIRS, CACHE_DIR, ACTUAL_CACHE_DIR, TVDB_API_PARMS, \
                 NAMING_PATTERN, NAMING_MULTI_EP, NAMING_FORCE_FOLDERS, NAMING_ABD_PATTERN, NAMING_CUSTOM_ABD, \
                 RENAME_EPISODES, properFinderScheduler, PROVIDER_ORDER, autoPostProcesserScheduler, \
-                NZBSRUS, NZBSRUS_UID, NZBSRUS_HASH, WOMBLE, NZBX, NZBX_COMPLETION, OMGWTFNZBS, OMGWTFNZBS_USERNAME, OMGWTFNZBS_APIKEY, providerList, newznabProviderList, \
-                anyRssProviderList, \
+                NZBSRUS, NZBSRUS_UID, NZBSRUS_HASH, WOMBLE, providerList, newznabProviderList, \
                 EXTRA_SCRIPTS, USE_TWITTER, TWITTER_USERNAME, TWITTER_PASSWORD, TWITTER_PREFIX, \
                 USE_NOTIFO, NOTIFO_USERNAME, NOTIFO_APISECRET, NOTIFO_NOTIFY_ONDOWNLOAD, NOTIFO_NOTIFY_ONSNATCH, \
                 USE_BOXCAR, BOXCAR_USERNAME, BOXCAR_PASSWORD, BOXCAR_NOTIFY_ONDOWNLOAD, BOXCAR_NOTIFY_ONSNATCH, \
                 USE_PUSHOVER, PUSHOVER_USERKEY, PUSHOVER_NOTIFY_ONDOWNLOAD, PUSHOVER_NOTIFY_ONSNATCH, \
-                USE_LIBNOTIFY, LIBNOTIFY_NOTIFY_ONSNATCH, LIBNOTIFY_NOTIFY_ONDOWNLOAD, USE_NMJ, NMJ_HOST, NMJ_DATABASE, NMJ_MOUNT, USE_NMJv2, NMJv2_HOST, NMJv2_DATABASE, NMJv2_DBLOC, USE_SYNOINDEX, \
+                USE_LIBNOTIFY, LIBNOTIFY_NOTIFY_ONSNATCH, LIBNOTIFY_NOTIFY_ONDOWNLOAD, USE_NMJ, NMJ_HOST, NMJ_DATABASE, NMJ_MOUNT, USE_SYNOINDEX, \
                 USE_BANNER, USE_LISTVIEW, METADATA_XBMC, METADATA_MEDIABROWSER, METADATA_PS3, METADATA_SYNOLOGY, metadata_provider_dict, \
                 NEWZBIN, NEWZBIN_USERNAME, NEWZBIN_PASSWORD, GIT_PATH, MOVE_ASSOCIATED_FILES, \
                 COMING_EPS_LAYOUT, COMING_EPS_SORT, COMING_EPS_DISPLAY_PAUSED, METADATA_WDTV, METADATA_TIVO, IGNORE_WORDS, CREATE_MISSING_SHOW_DIRS, \
-                ADD_SHOWS_WO_DIR, ANON_REDIRECT
+                ADD_SHOWS_WO_DIR
 
         if __INITIALIZED__:
             return False
@@ -416,11 +369,6 @@ def initialize(consoleLogging=True):
         WEB_USERNAME = check_setting_str(CFG, 'General', 'web_username', '')
         WEB_PASSWORD = check_setting_str(CFG, 'General', 'web_password', '')
         LAUNCH_BROWSER = bool(check_setting_int(CFG, 'General', 'launch_browser', 1))
-
-        ANON_REDIRECT = check_setting_str(CFG, 'General', 'anon_redirect', 'http://derefer.me/?')
-        # attempt to help prevent users from breaking links by using a bad url
-        if not ANON_REDIRECT.endswith('?'):
-            ANON_REDIRECT = ''
 
         USE_API = bool(check_setting_int(CFG, 'General', 'use_api', 0))
         API_KEY = check_setting_str(CFG, 'General', 'api_key', '')
@@ -463,7 +411,7 @@ def initialize(consoleLogging=True):
         if CACHE_DIR:
             TVDB_API_PARMS['cache'] = os.path.join(CACHE_DIR, 'tvdb')
 
-        TVDB_BASE_URL = 'http://thetvdb.com/api/' + TVDB_API_KEY
+        TVDB_BASE_URL = 'http://www.thetvdb.com/api/' + TVDB_API_KEY
 
         QUALITY_DEFAULT = check_setting_int(CFG, 'General', 'quality_default', SD)
         STATUS_DEFAULT = check_setting_int(CFG, 'General', 'status_default', SKIPPED)
@@ -478,9 +426,8 @@ def initialize(consoleLogging=True):
         NAMING_MULTI_EP = check_setting_int(CFG, 'General', 'naming_multi_ep', 1)
         NAMING_FORCE_FOLDERS = naming.check_force_season_folders()
 
-        USE_NZBS = bool(check_setting_int(CFG, 'General', 'use_nzbs', 0))
-        USE_TORRENTS = bool(check_setting_int(CFG, 'General', 'use_torrents', 1))
-        USE_VODS = bool(check_setting_int(CFG, 'General', 'use_vods', 0))
+        USE_NZBS = bool(check_setting_int(CFG, 'General', 'use_nzbs', 1))
+        USE_TORRENTS = bool(check_setting_int(CFG, 'General', 'use_torrents', 0))
 
         NZB_METHOD = check_setting_str(CFG, 'General', 'nzb_method', 'blackhole')
         if NZB_METHOD not in ('blackhole', 'sabnzbd', 'nzbget'):
@@ -503,7 +450,7 @@ def initialize(consoleLogging=True):
         EZRSS = bool(check_setting_int(CFG, 'General', 'use_torrent', 0))
         if not EZRSS:
             CheckSection(CFG, 'EZRSS')
-            EZRSS = bool(check_setting_int(CFG, 'EZRSS', 'ezrss', 1))
+            EZRSS = bool(check_setting_int(CFG, 'EZRSS', 'ezrss', 0))
 
         GIT_PATH = check_setting_str(CFG, 'General', 'git_path', '')
         IGNORE_WORDS = check_setting_str(CFG, 'General', 'ignore_words', IGNORE_WORDS)
@@ -576,25 +523,11 @@ def initialize(consoleLogging=True):
         CheckSection(CFG, 'Newznab')
         newznabData = check_setting_str(CFG, 'Newznab', 'newznab_data', '')
         newznabProviderList = providers.getNewznabProviderList(newznabData)
-        
-        CheckSection(CFG, 'AnyRss')
-        anyRssData = check_setting_str(CFG, 'AnyRss', 'anyrss_data', '')
-        anyRssProviderList = providers.getAnyRssProviderList(anyRssData)
-        
         providerList = providers.makeProviderList()
 
         CheckSection(CFG, 'Blackhole')
         NZB_DIR = check_setting_str(CFG, 'Blackhole', 'nzb_dir', '')
         TORRENT_DIR = check_setting_str(CFG, 'Blackhole', 'torrent_dir', '')
-        
-        CheckSection(CFG, 'SHOWRSS')
-        SHOWRSS = bool(check_setting_int(CFG, 'SHOWRSS', 'showrss', 1))
-        
-        CheckSection(CFG, 'KAT')
-        KAT = bool(check_setting_int(CFG, 'KAT', 'kat', 0))
-
-        CheckSection(CFG, 'PUBLICHD')
-        PUBLICHD = bool(check_setting_int(CFG, 'PUBLICHD', 'publichd', 1))
 
         CheckSection(CFG, 'TVTORRENTS')
         TVTORRENTS = bool(check_setting_int(CFG, 'TVTORRENTS', 'tvtorrents', 0))
@@ -604,10 +537,6 @@ def initialize(consoleLogging=True):
         CheckSection(CFG, 'BTN')
         BTN = bool(check_setting_int(CFG, 'BTN', 'btn', 0))
         BTN_API_KEY = check_setting_str(CFG, 'BTN', 'btn_api_key', '')
-
-        CheckSection(CFG, 'TorrentLeech')
-        TORRENTLEECH = bool(check_setting_int(CFG, 'TorrentLeech', 'torrentleech', 0))
-        TORRENTLEECH_KEY = check_setting_str(CFG, 'TorrentLeech', 'torrentleech_key', '')
 
         CheckSection(CFG, 'NZBs')
         NZBS = bool(check_setting_int(CFG, 'NZBs', 'nzbs', 0))
@@ -630,21 +559,7 @@ def initialize(consoleLogging=True):
         NEWZBIN_PASSWORD = check_setting_str(CFG, 'Newzbin', 'newzbin_password', '')
 
         CheckSection(CFG, 'Womble')
-        WOMBLE = bool(check_setting_int(CFG, 'Womble', 'womble', 0))
-        
-        CheckSection(CFG, 'Iplayer')
-        IPLAYER = bool(check_setting_int(CFG, 'Iplayer', 'Iplayer', 0))
-        IPLAYER_GETIPLAYER_PATH = check_setting_str(CFG, 'Iplayer', 'get_iplayer_path', '')
-        IPLAYER_EXTRA_PARAMS = check_setting_str(CFG, 'Iplayer', 'get_iplayer_extra_params', '')
-
-        CheckSection(CFG, 'nzbX')
-        NZBX = bool(check_setting_int(CFG, 'nzbX', 'nzbx', 0))
-        NZBX_COMPLETION = check_setting_int(CFG, 'nzbX', 'nzbx_completion', 100)
-
-        CheckSection(CFG, 'omgwtfnzbs')
-        OMGWTFNZBS = bool(check_setting_int(CFG, 'omgwtfnzbs', 'omgwtfnzbs', 0))
-        OMGWTFNZBS_USERNAME = check_setting_str(CFG, 'omgwtfnzbs', 'omgwtfnzbs_username', '')
-        OMGWTFNZBS_APIKEY = check_setting_str(CFG, 'omgwtfnzbs', 'omgwtfnzbs_apikey', '')
+        WOMBLE = bool(check_setting_int(CFG, 'Womble', 'womble', 1))
 
         CheckSection(CFG, 'SABnzbd')
         SAB_USERNAME = check_setting_str(CFG, 'SABnzbd', 'sab_username', '')
@@ -664,7 +579,6 @@ def initialize(consoleLogging=True):
         XBMC_NOTIFY_ONDOWNLOAD = bool(check_setting_int(CFG, 'XBMC', 'xbmc_notify_ondownload', 0))
         XBMC_UPDATE_LIBRARY = bool(check_setting_int(CFG, 'XBMC', 'xbmc_update_library', 0))
         XBMC_UPDATE_FULL = bool(check_setting_int(CFG, 'XBMC', 'xbmc_update_full', 0))
-        XBMC_UPDATE_ONLYFIRST = bool(check_setting_int(CFG, 'XBMC', 'xbmc_update_onlyfirst', 0))
         XBMC_HOST = check_setting_str(CFG, 'XBMC', 'xbmc_host', '')
         XBMC_USERNAME = check_setting_str(CFG, 'XBMC', 'xbmc_username', '')
         XBMC_PASSWORD = check_setting_str(CFG, 'XBMC', 'xbmc_password', '')
@@ -731,12 +645,6 @@ def initialize(consoleLogging=True):
         NMJ_DATABASE = check_setting_str(CFG, 'NMJ', 'nmj_database', '')
         NMJ_MOUNT = check_setting_str(CFG, 'NMJ', 'nmj_mount', '')
 
-        CheckSection(CFG, 'NMJv2')
-        USE_NMJv2 = bool(check_setting_int(CFG, 'NMJv2', 'use_nmjv2', 0))
-        NMJv2_HOST = check_setting_str(CFG, 'NMJv2', 'nmjv2_host', '')
-        NMJv2_DATABASE = check_setting_str(CFG, 'NMJv2', 'nmjv2_database', '')
-        NMJv2_DBLOC = check_setting_str(CFG, 'NMJv2', 'nmjv2_dbloc', '')
-
         CheckSection(CFG, 'Synology')
         USE_SYNOINDEX = bool(check_setting_int(CFG, 'Synology', 'use_synoindex', 0))
 
@@ -765,29 +673,9 @@ def initialize(consoleLogging=True):
         NMA_NOTIFY_ONDOWNLOAD = bool(check_setting_int(CFG, 'NMA', 'nma_notify_ondownload', 0))
         NMA_API = check_setting_str(CFG, 'NMA', 'nma_api', '')
         NMA_PRIORITY = check_setting_str(CFG, 'NMA', 'nma_priority', "0")
-        
-        lt_log_messages = []
-        lt_log_messages.append((u'importing downloader', logger.DEBUG))
-        from sickbeard import downloader
-        LIBTORRENT_AVAILABLE = downloader.LIBTORRENT_AVAILABLE
-        lt_log_messages.append((u'libtorrent is %savailable' % ('' if LIBTORRENT_AVAILABLE else 'NOT '),
-                   logger.MESSAGE))
-        CheckSection(CFG, 'Libtorrent')
-        USE_LIBTORRENT = bool(check_setting_int(CFG, 'Libtorrent', 'use_libtorrent', 1)) and LIBTORRENT_AVAILABLE
-        LIBTORRENT_WORKING_DIR = check_setting_str(CFG, 'Libtorrent', 'working_dir', os.path.join(DATA_DIR, 'lt_working_dir'))
-        LIBTORRENT_MAX_UL_SPEED = check_setting_int(CFG, 'Libtorrent', 'max_ul_speed', 0)
-        LIBTORRENT_MAX_DL_SPEED = check_setting_int(CFG, 'Libtorrent', 'max_dl_speed', 0)
-        LIBTORRENT_SEED_TO_RATIO = check_setting_float(CFG, 'Libtorrent', 'seed_to_ratio', 1.1)
-        LIBTORRENT_PORT_MIN = check_setting_int(CFG, 'Libtorrent', 'port_min', 6881)
-        LIBTORRENT_PORT_MAX = check_setting_int(CFG, 'Libtorrent', 'port_max', 6891)
-        PREFER_MAGNETS = USE_LIBTORRENT # very simple for now, we prefer magnets when using libtorrent
 
         # start up all the threads
         logger.sb_log_instance.initLogging(consoleLogging=consoleLogging)
-        
-        # Now that logging is started, we can log any messages from the downloader import above
-        for m in lt_log_messages:
-            logger.log(m[0], m[1])
 
         # initialize the main SB database
         db.upgradeDatabase(db.DBConnection(), mainDB.InitialSchema)
@@ -834,15 +722,11 @@ def initialize(consoleLogging=True):
                                                      cycleTime=properFinderInstance.updateInterval,
                                                      threadName="FINDPROPERS",
                                                      runImmediately=False)
-        if not DOWNLOAD_PROPERS:
-            properFinderScheduler.silent = True
 
         autoPostProcesserScheduler = scheduler.Scheduler(autoPostProcesser.PostProcesser(),
                                                      cycleTime=datetime.timedelta(minutes=10),
                                                      threadName="POSTPROCESSER",
                                                      runImmediately=True)
-        if not PROCESS_AUTOMATICALLY:
-            autoPostProcesserScheduler.silent = True
 
         traktWatchListCheckerSchedular = scheduler.Scheduler(traktWatchListChecker.TraktChecker(),
                                                      cycleTime=datetime.timedelta(minutes=10),
@@ -854,12 +738,6 @@ def initialize(consoleLogging=True):
                                                                       threadName="BACKLOG",
                                                                       runImmediately=True)
         backlogSearchScheduler.action.cycleTime = BACKLOG_SEARCH_FREQUENCY
-        
-        torrentProcessScheduler = scheduler.Scheduler(downloader.TorrentProcessHandler(),
-                                                     cycleTime=datetime.timedelta(seconds=5),
-                                                     threadName="TORRENTHANDLER",
-                                                     runImmediately=False,
-                                                     silent=True)
 
         showList = []
         loadingShowList = {}
@@ -873,12 +751,7 @@ def start():
     global __INITIALIZED__, currentSearchScheduler, backlogSearchScheduler, \
             showUpdateScheduler, versionCheckScheduler, showQueueScheduler, \
             properFinderScheduler, autoPostProcesserScheduler, searchQueueScheduler, \
-<<<<<<< HEAD
             traktWatchListCheckerSchedular, started
-=======
-            torrentProcessScheduler, \
-            started
->>>>>>> master
 
     with INIT_LOCK:
 
@@ -907,9 +780,6 @@ def start():
 
             # start the proper finder
             autoPostProcesserScheduler.thread.start()
-            
-            # thread for controlling running torrents
-            torrentProcessScheduler.thread.start()
 
             # start the trakt watchlist
             traktWatchListCheckerSchedular.thread.start()
@@ -921,12 +791,7 @@ def halt():
 
     global __INITIALIZED__, currentSearchScheduler, backlogSearchScheduler, showUpdateScheduler, \
             showQueueScheduler, properFinderScheduler, autoPostProcesserScheduler, searchQueueScheduler, \
-<<<<<<< HEAD
             traktWatchListCheckerSchedular, started
-=======
-            torrentProcessScheduler, \
-            started
->>>>>>> master
 
     with INIT_LOCK:
 
@@ -935,11 +800,6 @@ def halt():
             logger.log(u"Aborting all threads")
 
             # abort all the threads
-            
-            # we *start* by sending an early notification to libtorrent, b/c it
-            # will probably need to save state etc.
-            torrentProcessScheduler.action.shutDownImmediate = True
-            torrentProcessScheduler.forceRun()
 
             currentSearchScheduler.abort = True
             logger.log(u"Waiting for the SEARCH thread to exit")
@@ -1001,15 +861,6 @@ def halt():
             logger.log(u"Waiting for the PROPERFINDER thread to exit")
             try:
                 properFinderScheduler.thread.join(10)
-            except:
-                pass
-            
-            torrentProcessScheduler.abort = True
-            logger.log(u"Waiting for the %s thread to exit" % (torrentProcessScheduler.threadName))
-            try:
-                # we give this thread a full 60 seconds to end, because it may
-                # have running torrents that need to be tidied-up
-                torrentProcessScheduler.thread.join(60)
             except:
                 pass
 
@@ -1106,11 +957,10 @@ def restart(soft=True):
 
 def save_config():
 
-    new_config = ConfigObj()
+    new_config = ConfigObj(encoding="UTF-8")
     new_config.filename = CONFIG_FILE
 
     new_config['General'] = {}
-    new_config['General']['config_version'] = CONFIG_VERSION
     new_config['General']['log_dir'] = LOG_DIR
     new_config['General']['web_port'] = WEB_PORT
     new_config['General']['web_host'] = WEB_HOST
@@ -1119,16 +969,13 @@ def save_config():
     new_config['General']['web_root'] = WEB_ROOT
     new_config['General']['web_username'] = WEB_USERNAME
     new_config['General']['web_password'] = WEB_PASSWORD
-    new_config['General']['anon_redirect'] = ANON_REDIRECT
     new_config['General']['use_api'] = int(USE_API)
     new_config['General']['api_key'] = API_KEY
     new_config['General']['enable_https'] = int(ENABLE_HTTPS)
     new_config['General']['https_cert'] = HTTPS_CERT
     new_config['General']['https_key'] = HTTPS_KEY
-
     new_config['General']['use_nzbs'] = int(USE_NZBS)
     new_config['General']['use_torrents'] = int(USE_TORRENTS)
-    new_config['General']['use_vods'] = int(USE_VODS)
     new_config['General']['nzb_method'] = NZB_METHOD
     new_config['General']['usenet_retention'] = int(USENET_RETENTION)
     new_config['General']['search_frequency'] = int(SEARCH_FREQUENCY)
@@ -1173,16 +1020,7 @@ def save_config():
 
     new_config['EZRSS'] = {}
     new_config['EZRSS']['ezrss'] = int(EZRSS)
-    
-    new_config['SHOWRSS'] = {}
-    new_config['SHOWRSS']['showrss'] = int(SHOWRSS)
 
-    new_config['PUBLICHD'] = {}
-    new_config['PUBLICHD']['publichd'] = int(PUBLICHD)
-    
-    new_config['KAT'] = {}
-    new_config['KAT']['kat'] = int(KAT)
-    
     new_config['TVTORRENTS'] = {}
     new_config['TVTORRENTS']['tvtorrents'] = int(TVTORRENTS)
     new_config['TVTORRENTS']['tvtorrents_digest'] = TVTORRENTS_DIGEST
@@ -1191,10 +1029,6 @@ def save_config():
     new_config['BTN'] = {}
     new_config['BTN']['btn'] = int(BTN)
     new_config['BTN']['btn_api_key'] = BTN_API_KEY
-
-    new_config['TorrentLeech'] = {}
-    new_config['TorrentLeech']['torrentleech'] = int(TORRENTLEECH)
-    new_config['TorrentLeech']['torrentleech_key'] = TORRENTLEECH_KEY
 
     new_config['NZBs'] = {}
     new_config['NZBs']['nzbs'] = int(NZBS)
@@ -1219,20 +1053,6 @@ def save_config():
     new_config['Womble'] = {}
     new_config['Womble']['womble'] = int(WOMBLE)
 
-    new_config['Iplayer'] = {}
-    new_config['Iplayer']['Iplayer'] = int(IPLAYER)
-    new_config['Iplayer']['get_iplayer_path'] = IPLAYER_GETIPLAYER_PATH
-    new_config['Iplayer']['get_iplayer_extra_params'] = IPLAYER_EXTRA_PARAMS
-
-    new_config['nzbX'] = {}
-    new_config['nzbX']['nzbx'] = int(NZBX)
-    new_config['nzbX']['nzbx_completion'] = int(NZBX_COMPLETION)
-
-    new_config['omgwtfnzbs'] = {}
-    new_config['omgwtfnzbs']['omgwtfnzbs'] = int(OMGWTFNZBS)
-    new_config['omgwtfnzbs']['omgwtfnzbs_username'] = OMGWTFNZBS_USERNAME
-    new_config['omgwtfnzbs']['omgwtfnzbs_apikey'] = OMGWTFNZBS_APIKEY
-
     new_config['SABnzbd'] = {}
     new_config['SABnzbd']['sab_username'] = SAB_USERNAME
     new_config['SABnzbd']['sab_password'] = SAB_PASSWORD
@@ -1251,7 +1071,6 @@ def save_config():
     new_config['XBMC']['xbmc_notify_ondownload'] = int(XBMC_NOTIFY_ONDOWNLOAD)
     new_config['XBMC']['xbmc_update_library'] = int(XBMC_UPDATE_LIBRARY)
     new_config['XBMC']['xbmc_update_full'] = int(XBMC_UPDATE_FULL)
-    new_config['XBMC']['xbmc_update_onlyfirst'] = int(XBMC_UPDATE_ONLYFIRST)
     new_config['XBMC']['xbmc_host'] = XBMC_HOST
     new_config['XBMC']['xbmc_username'] = XBMC_USERNAME
     new_config['XBMC']['xbmc_password'] = XBMC_PASSWORD
@@ -1321,12 +1140,6 @@ def save_config():
     new_config['Synology'] = {}
     new_config['Synology']['use_synoindex'] = int(USE_SYNOINDEX)
 
-    new_config['NMJv2'] = {}
-    new_config['NMJv2']['use_nmjv2'] = int(USE_NMJv2)
-    new_config['NMJv2']['nmjv2_host'] = NMJv2_HOST
-    new_config['NMJv2']['nmjv2_database'] = NMJv2_DATABASE
-    new_config['NMJv2']['nmjv2_dbloc'] = NMJv2_DBLOC
-
     new_config['Trakt'] = {}
     new_config['Trakt']['use_trakt'] = int(USE_TRAKT)
     new_config['Trakt']['trakt_username'] = TRAKT_USERNAME
@@ -1355,23 +1168,11 @@ def save_config():
 
     new_config['Newznab'] = {}
     new_config['Newznab']['newznab_data'] = '!!!'.join([x.configStr() for x in newznabProviderList])
-    
-    new_config['AnyRss'] = {}
-    new_config['AnyRss']['anyrss_data'] = '!!!'.join([x.configStr() for x in anyRssProviderList])
 
     new_config['GUI'] = {}
     new_config['GUI']['coming_eps_layout'] = COMING_EPS_LAYOUT
     new_config['GUI']['coming_eps_display_paused'] = int(COMING_EPS_DISPLAY_PAUSED)
     new_config['GUI']['coming_eps_sort'] = COMING_EPS_SORT
-
-    new_config['Libtorrent'] = {}
-    new_config['Libtorrent']['use_libtorrent'] = int(USE_LIBTORRENT)
-    new_config['Libtorrent']['working_dir'] = LIBTORRENT_WORKING_DIR
-    new_config['Libtorrent']['max_ul_speed'] = int(LIBTORRENT_MAX_UL_SPEED)
-    new_config['Libtorrent']['max_dl_speed'] = int(LIBTORRENT_MAX_DL_SPEED)
-    new_config['Libtorrent']['port_min'] = int(LIBTORRENT_PORT_MIN)
-    new_config['Libtorrent']['port_max'] = int(LIBTORRENT_PORT_MAX)
-    new_config['Libtorrent']['seed_to_ratio'] = float(LIBTORRENT_SEED_TO_RATIO)
 
     new_config['General']['config_version'] = CONFIG_VERSION
 

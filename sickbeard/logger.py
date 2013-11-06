@@ -84,7 +84,7 @@ class SBRotatingLogHandler(object):
         Configure a file handler to log at file_name and return it.
         """
     
-        file_handler = logging.FileHandler(self.log_file, encoding='utf-8')
+        file_handler = logging.FileHandler(self.log_file)
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', '%b-%d %H:%M:%S'))
         return file_handler
@@ -127,7 +127,7 @@ class SBRotatingLogHandler(object):
                     os.remove(cur_file_name)
                 else:
                     os.rename(cur_file_name, self._log_file_name(i+1))
-            except OSError:
+            except WindowsError:
                 pass
         
         # the new log handler will always be on the un-numbered .log file

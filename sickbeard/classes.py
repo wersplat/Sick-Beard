@@ -23,7 +23,7 @@ import sickbeard
 import urllib
 import datetime
 
-from common import USER_AGENT, Quality
+from common import USER_AGENT
 
 class SickBeardURLopener(urllib.FancyURLopener):
     version = USER_AGENT
@@ -84,7 +84,7 @@ class SearchResult:
         self.episodes = episodes
 
         # quality of the release
-        self.quality = Quality.UNKNOWN
+        self.quality = -1
 
         # release name
         self.name = ""
@@ -120,12 +120,6 @@ class TorrentSearchResult(SearchResult):
     Torrent result with an URL to the torrent
     """
     resultType = "torrent"
-    
-class VODSearchResult(SearchResult):
-    """
-    VOD result with an URL to the torrent
-    """
-    resultType = "stream"
 
 
 class ShowListUI:
@@ -155,7 +149,7 @@ class Proper:
         self.url = url
         self.date = date
         self.provider = None
-        self.quality = Quality.UNKNOWN
+        self.quality = -1
 
         self.tvdbid = -1
         self.season = -1

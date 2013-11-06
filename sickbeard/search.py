@@ -82,9 +82,6 @@ def _downloadResult(result):
     elif resProvider.providerType == "torrent":
         newResult = resProvider.downloadResult(result)
 
-    elif resProvider.providerType == GenericProvider.VOD:
-        newResult = resProvider.downloadResult(result)
-
     else:
         logger.log(u"Invalid provider type - this is a coding error, report it please", logger.ERROR)
         return False
@@ -119,8 +116,6 @@ def snatchEpisode(result, endStatus=SNATCHED):
 
     # torrents are always saved to disk
     elif result.resultType == "torrent":
-        dlResult = _downloadResult(result)
-    elif result.resultType == 'stream':
         dlResult = _downloadResult(result)
     else:
         logger.log(u"Unknown result type, unable to download it", logger.ERROR)
@@ -184,11 +179,6 @@ def searchForNeededEpisodes():
                     bestResult = curResult
 
             bestResult = pickBestResult(curFoundResults[curEp])
-
-            # if all results were rejected move on to the next episode
-            if not bestResult:
-                logger.log(u"All found results for "+curEp.prettyName()+" were rejected.", logger.DEBUG)
-                continue
 
             # if it's already in the list (from another provider) and the newly found quality is no better then skip it
             if curEp in foundResults and bestResult.quality <= foundResults[curEp].quality:

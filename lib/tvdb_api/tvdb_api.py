@@ -15,13 +15,11 @@ Example usage:
 u'Cabin Fever'
 """
 __author__ = "dbr/Ben"
-__version__ = "1.8.2"
+__version__ = "1.7.2"
 
-import os
-import time
+import os, time
 import urllib
 import urllib2
-import getpass
 import StringIO
 import tempfile
 import warnings
@@ -477,7 +475,7 @@ class Tvdb:
 
         # The following url_ configs are based of the
         # http://thetvdb.com/wiki/index.php/Programmers_API
-        self.config['base_url'] = "http://thetvdb.com"
+        self.config['base_url'] = "http://www.thetvdb.com"
 
         if self.config['search_all_languages']:
             self.config['url_getSeries'] = u"%(base_url)s/api/GetSeries.php?seriesname=%%s&language=all" % self.config
@@ -496,19 +494,9 @@ class Tvdb:
     #end __init__
 
     def _getTempDir(self):
-        """Returns the [system temp dir]/tvdb_api-u501 (or
-        tvdb_api-myuser)
+        """Returns the [system temp dir]/tvdb_api
         """
-        if hasattr(os, 'getuid'):
-            uid = "u%d" % (os.getuid())
-        else:
-            # For Windows
-            try:
-                uid = getpass.getuser()
-            except ImportError:
-                return os.path.join(tempfile.gettempdir(), "tvdb_api")
-
-        return os.path.join(tempfile.gettempdir(), "tvdb_api-%s" % (uid))
+        return os.path.join(tempfile.gettempdir(), "tvdb_api")
 
     def _loadUrl(self, url, recache = False, language=None):
         global lastTimeout

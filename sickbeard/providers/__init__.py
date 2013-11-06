@@ -18,26 +18,21 @@
 
 __all__ = ['ezrss',
            'tvtorrents',
-           'torrentleech',
+           'nzbmatrix',
+           'nzbs_org_old',
            'nzbsrus',
            'womble',
+           'newzbin',
            'btn',
-           'nzbx',
-           'omgwtfnzbs',
-           'showrss',
-           'kat',
-           'publichd',
-           'iplayer',
            ]
 
 import sickbeard
 
 from os import sys
 
-
 def sortedProviderList():
 
-    initialList = sickbeard.providerList + sickbeard.newznabProviderList + sickbeard.anyRssProviderList
+    initialList = sickbeard.providerList + sickbeard.newznabProviderList
     providerDict = dict(zip([x.getID() for x in initialList], initialList))
 
     newList = []
@@ -54,11 +49,9 @@ def sortedProviderList():
 
     return newList
 
-
 def makeProviderList():
 
     return [x.provider for x in [getProviderModule(y) for y in __all__] if x]
-
 
 def getNewznabProviderList(data):
 
@@ -84,7 +77,7 @@ def getNewznabProviderList(data):
             providerDict[curDefault.name].name = curDefault.name
             providerDict[curDefault.name].url = curDefault.url
             providerDict[curDefault.name].needs_auth = curDefault.needs_auth
-
+        
     return filter(lambda x: x, providerList)
 
 
@@ -103,33 +96,21 @@ def makeNewznabProvider(configString):
 
     return newProvider
 
-def getAnyRssProviderList(data):
-    providerList = filter(lambda x: x, [makeAnyRssProvider(x) for x in data.split('!!!')])
-    return filter(lambda x: x, providerList)
-
-def makeAnyRssProvider(configString):
-    if not configString:
-        return None
-    anyrss = sys.modules['sickbeard.providers.anyrss']
-    return anyrss.AnyRssProvider.fromConfigStr(configString)
-
-
 def getDefaultNewznabProviders():
-    return 'Sick Beard Index|http://lolo.sickbeard.com/|0|0!!!NZBs.org|http://nzbs.org/||0!!!Usenet-Crawler|http://www.usenet-crawler.com/||0'
+    return 'Sick Beard Index|http://lolo.sickbeard.com/|0|0!!!NZBs.org|http://beta.nzbs.org/||0'
 
 
 def getProviderModule(name):
     name = name.lower()
     prefix = "sickbeard.providers."
-    if name in __all__ and prefix + name in sys.modules:
-        return sys.modules[prefix + name]
+    if name in __all__ and prefix+name in sys.modules:
+        return sys.modules[prefix+name]
     else:
-        raise Exception("Can't find " + prefix + name + " in " + repr(sys.modules))
+        raise Exception("Can't find "+prefix+name+" in "+repr(sys.modules))
 
+def getProviderClass(id):
 
-def getProviderClass(providerID):
-
-    providerMatch = [x for x in sickbeard.providerList + sickbeard.newznabProviderList + sickbeard.anyRssProviderList if x.getID() == providerID]
+    providerMatch = [x for x in sickbeard.providerList+sickbeard.newznabProviderList if x.getID() == id]
 
     if len(providerMatch) != 1:
         return None
